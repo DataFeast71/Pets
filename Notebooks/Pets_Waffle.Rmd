@@ -1,0 +1,126 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(waffle)
+library(hrbrthemes)
+library(extrafont)
+```
+
+The data was downloaded from [here](https://knoema.com/data/pets-population+birds)
+
+## Data
+
+```{r}
+df <- read.csv("Pets_data.csv", header = TRUE, stringsAsFactors = TRUE)
+head(df)
+```
+
+```{r}
+str(df)
+```
+
+We have 29 countries and 4 different pets. In the case of Population variable we have the next descriptive statistics:
+
+```{r}
+summary(df)
+```
+
+The minimum value is 38000 and the maximum es 191001000 which means that the difference is in 5 grades of magnitude. To visualize this differences we have different options like divide all with millons or get the logaritmic. We would try dividing the values by millons
+
+```{r}
+df <- df %>% mutate(ByMillon = Population/1e+06)
+head(df)
+```
+
+We want to prepare the data to make a waffle chart so to test we would select only one country, for example, Russian Federation, why not?
+
+```{r}
+df_russia <- df %>%  filter(Country == "Russian Federation")
+df_russia
+```
+
+```{r}
+df_russia %>% 
+  count(Pets, wt = Population) %>% 
+  ggplot(aes(fill = Pets, values = n)) +
+  geom_waffle(n_rows = 10,colour = "white", flip = TRUE, size = 0.33, make_proportional = TRUE) +
+  scale_fill_manual(
+    name = NULL,
+    values = c("#a40000", "#c68958", "#ae6056", "#aaaaaa"),
+    labels = c("Birds", "Cats", "Dogs", "Fish")
+  ) + 
+  coord_equal() +
+  theme_ipsum_rc(grid = "") +
+  theme_enhance_waffle() +
+  theme(legend.key.height = unit(2.25, "line")) +
+  theme(legend.text = element_text(size = 10, hjust = 0, vjust = 0.75))
+```
+
+Now with two countries
+
+```{r}
+df_countries <- df %>%  filter(Country %in% c("Russian Federation", "China")) %>% 
+  mutate(ByMillon = ceiling(ByMillon))
+df_countries
+```
+
+```{r}
+ggplot(df_countries, aes(fill = Pets, values = ByMillon)) +
+  geom_waffle(color = "white", size = 0.25, n_rows = 10, flip = TRUE, make_proportional = FALSE) +
+  facet_wrap(~Country, nrow = 1, strip.position = "bottom") +
+  scale_x_discrete() +
+  scale_y_continuous(labels = function(x) x * 10, # make this multiplyer the same as n_rows
+                     expand = c(0,0)) +
+  ggthemes::scale_fill_tableau(name = NULL) +
+  coord_equal() + 
+  theme_minimal(base_family = "Roboto Condensed") +
+  theme(panel.grid = element_blank(), axis.ticks.y = element_line()) +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+```{r}
+fa_grep("cat|dog|fish|bird|dove")
+```
+
+
+## Using pictograms
+
+
+```{r}
+df_russia %>% mutate(ByMillon = ceiling(ByMillon)) %>% 
+  ggplot(aes(label = Pets, values = ByMillon, color = Pets)) +
+  geom_pictogram(n_rows = 10, make_proportional = TRUE, family = "Font Awesome 5 Free Solid", size = 7) +
+  scale_color_manual(
+    name = NULL,
+    values = c(      
+      Birds = "green",
+      Cats = "black",
+      Dogs = "brown",
+      Fish = "blue")
+  ) +
+  scale_label_pictogram(
+    name = NULL,
+    values = c(
+      Birds = "dove",
+      Cats = "cat",
+      Dogs = "dog",
+      Fish = "fish"
+    )
+  ) +
+  coord_equal() +
+  theme_ipsum_rc(grid = "") +
+  theme_enhance_waffle() +
+  theme(legend.key.height = unit(2.25, "line")) +
+  theme(legend.text = element_text(size = 10, hjust = 0, vjust = 0.75))
+```
+
+
+
+
+
+
+
